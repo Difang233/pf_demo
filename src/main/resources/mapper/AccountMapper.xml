@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.pf_management.mapper.AccountMapper" >
+    <resultMap id="account" type="account">
+        <id column="id" property="id"></id>
+        <result column="user_name" property="username"></result>
+        <result column="name" property="name"></result>
+        <result column="password" property="password"></result>
+        <result column="is_enabled" property="isEnabled"></result>
+        <result column="gmt_create" property="gmtCreate"></result>
+        <result column="gmt_modified" property="gmtModified"></result>
+        <result column="flag" property="flag"></result>
+        <collection property="roles" ofType="role">
+            <id column="roleId" property="id"></id>
+            <result column="role_name" property="roleName"></result>
+            <result column="role_code" property="roleCode"></result>
+            <result column="roleFlag" property="flag"></result>
+            <result column="roleCreate" property="gmtCreate"></result>
+            <result column="roleModified" property="gmtModified"></result>
+            <result column="roleEnabled" property="isEnabled"></result>
+        </collection>
+    </resultMap>
+    <select id="findAccountsByCondition" parameterType="map" resultMap="account">
+        select a.id,
+               a.user_name,
+               a.name,
+               a.password,
+               a.is_enabled,
+               a.gmt_create,
+               a.gmt_modified,
+               a.flag,
+               r.id roleId,
+               r.role_name,
+               r.role_code,
+               r.flag roleFlag,
+               r.gmt_create roleCreate,
+               r.gmt_modified roleModified,
+               r.is_enabled roleEnabled
+        from pf_account a
+        left join pf_account_role ar
+        on a.id = ar.account_id and a.flag = ar.flag
+        left join pf_role r
+        on ar.role_id = r.id and ar.flag = r.flag
+        where a.flag = true
+        <if test="username != null and username != ''">
+            and a.user_name = #{username}
+        </if>
+        <if test="name != null and name != ''">
+          <bind name="nameLike" value="'%' + name + '%'"/>
+            and a.name like #{nameLike}
+        </if>
+        <if test="isEnabled != null">
+            and a.is_enabled = #{isEnabled}
+        </if>
+        <if test="role != null">
+            and exists (select 1 from pf_account_role ar2 where ar2.flag = true and ar2.role_id = #{role} and ar2.account_id = a.id)
+        </if>
+        order by a.id
+    </select>
+
+    <select id="findAccountById" resultMap="account" parameterType="long">
+        select a.id,
+               a.user_name,
+               a.name,
+               a.password,
+               a.is_enabled,
+               a.gmt_create,
+               a.gmt_modified,
+               a.flag,
+               r.id roleId,
+               r.role_name,
+               r.role_code,
+               r.flag roleFlag,
+               r.gmt_create roleCreate,
+               r.gmt_modified roleModified,
+               r.is_enabled roleEnabled
+        from pf_account a
+        left join pf_account_role ar
+        on a.id = ar.account_id and a.flag = ar.flag
+        left join pf_role r
+        on ar.role_id = r.id and ar.flag = r.flag
+        where a.flag = true
+        and a.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="account" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        insert into pf_account(user_name, name, password, is_enabled, gmt_create, gmt_modified, flag)
+        values (#{username}, #{name}, #{password}, ifnull(#{isEnabled}, true), now(), now(), true)
+    </insert>
+
+    <insert id="insertAccountRole" parameterType="account">
+        insert into pf_account_role (account_id, role_id, gmt_create, gmt_modified, flag)
+        values
+        <foreach collection="roles" item="role" separator=",">
+            (#{id}, #{role.id}, now(), now(), true)
+        </foreach>
+    </insert>
+
+    <update id="invalidAccountRole" parameterType="long">
+        update pf_account_role set flag = false, gmt_modified = now() where account_id = #{id}
+    </update>
+    
+    <update id="update" parameterType="account">
+        update pf_account set 
+        <if test="username != null and username != ''">
+            user_name = #{username},
+        </if>
+        <if test="name != null and name != ''">
+            name = #{name},
+        </if>
+        <if test="password != null and password != ''">
+            password = #{password},
+        </if>
+        <if test="isEnabled != null">
+            is_enabled = #{isEnabled},
+        </if>
+        gmt_modified = now()
+        where id = #{id} and flag = true
+    </update>
+
+    <update id="delete" parameterType="long">
+        update pf_account set flag = false, gmt_modified = now() where id = #{id}
+    </update>
+</mapper>

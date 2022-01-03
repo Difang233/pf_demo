@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.pf_management.mapper.RoleMapper" >
+
+    <resultMap id="role" type="role">
+        <id column="id" property="id"></id>
+        <result column="role_name" property="roleName"></result>
+        <result column="role_code" property="roleCode"></result>
+        <result column="flag" property="flag"></result>
+        <result column="gmt_create" property="gmtCreate"></result>
+        <result column="gmt_modified" property="gmtModified"></result>
+        <result column="is_enabled" property="isEnabled"></result>
+        <collection property="menus" ofType="menu">
+            <id column="menu_id" property="id"></id>
+            <result column="menu_code" property="menuCode"></result>
+            <result column="menu_name" property="menuName"></result>
+            <result column="menu_type" property="menuType"></result>
+            <result column="url" property="url"></result>
+            <result column="parent_id" property="parentId"></result>
+            <result column="menuCreate" property="gmtCreate"></result>
+            <result column="menuModified" property="gmtModified"></result>
+            <result column="menuFlag" property="flag"></result>
+        </collection>
+    </resultMap>
+
+    <select id="findRolesByCondition" parameterType="Map" resultMap="role">
+        select
+        r.id,
+        r.role_name,
+        r.role_code,
+        r.flag,
+        r.gmt_create,
+        r.gmt_modified,
+        r.is_enabled,
+        rm.role_id rid,
+        rm.menu_id,
+        m.menu_code,
+        m.menu_name,
+        m.menu_type,
+        m.url,
+        m.parent_id,
+        m.gmt_create menuCreate,
+        m.gmt_modified menuModified,
+        m.flag menuFlag
+        from pf_role r
+        left join pf_role_menu rm
+        on r.id = rm.role_id and r.flag = rm.flag
+        left join pf_menu m
+        on rm.menu_id = m.id and rm.flag = m.flag
+        where r.flag = true
+        <if test="name != null and name != ''">
+            <bind name="nameLike" value="'%' + name + '%'"/>
+            and r.role_name like #{nameLike}
+        </if>
+        <if test="code != null and code != ''">
+            and r.role_code = #{code}
+        </if>
+        <if test="menuId != null and menuId != ''">
+            and exists (select 1 from pf_role_menu rm2 where rm2.role_id = r.id and rm2.menu_id = #{menuId} and rm2.flag = true)
+        </if>
+        <if test="isEnabled != null">
+            and is_enabled = #{isEnabled}
+        </if>
+        order by r.id
+    </select>
+
+    <insert id="insert" parameterType="role" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into pf_role(role_name, role_code, flag, gmt_create, gmt_modified, is_enabled)
+        values (#{roleName}, #{roleCode}, true, now(), now(), ifnull(#{isEnabled}, true))
+    </insert>
+
+    <insert id="insertRoleMenu" parameterType="role">
+        insert into pf_role_menu(role_id, menu_id, gmt_create, gmt_modified, flag)
+        values
+        <foreach collection="menus" item="menu" separator=",">
+            (#{id}, #{menu.id}, now(), now(), true)
+        </foreach>
+    </insert>
+
+    <update id="invalidRoleMenuByRoleId" parameterType="long">
+        update pf_role_menu set flag = false, gmt_modified = now()
+        where role_id = #{roleId}
+    </update>
+
+    <update id="update" parameterType="role">
+        update pf_role
+        set
+        <if test="roleCode != null and roleCode != ''">
+            role_code = #{roleCode},
+        </if>
+        <if test="roleName != null and roleName != ''">
+            role_name = #{roleName},
+        </if>
+        <if test="isEnabled != null">
+            is_enabled = #{isEnabled},
+        </if>
+        gmt_modified = now()
+        where id = #{id}
+    </update>
+
+    <update id="delete" parameterType="long">
+        update pf_role
+        set flag = false, gmt_modified = now()
+        where id = #{id}
+    </update>
+
+    <select id="findAccountCountByRoleId" parameterType="long" resultType="integer">
+        select count(*) from pf_account_role where role_id = #{roleId} and flag = true
+    </select>
+
+    <select id="findRoleById" parameterType="long" resultMap="role">
+        select
+            r.id,
+            r.role_name,
+            r.role_code,
+            r.flag,
+            r.gmt_create,
+            r.gmt_modified,
+            r.is_enabled,
+            rm.role_id rid,
+            rm.menu_id,
+            m.menu_code,
+            m.menu_name,
+            m.menu_type,
+            m.url,
+            m.parent_id,
+            m.gmt_create menuCreate,
+            m.gmt_modified menuModified,
+            m.flag menuFlag
+        from pf_role r
+        left join pf_role_menu rm
+        on r.id = rm.role_id and r.flag = rm.flag
+        left join pf_menu m
+        on rm.menu_id = m.id and rm.flag = m.flag
+        where r.flag = true
+        and r.id = #{id}
+    </select>
+</mapper>

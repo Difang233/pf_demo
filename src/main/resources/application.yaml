@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      username: root
+      password: mar74123
+      url: jdbc:mysql:///pf_demo
+
+mybatis:
+  type-aliases-package: com.example.pf_management.entity
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.example.pf_management.mapper: debug
